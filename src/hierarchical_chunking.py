@@ -168,6 +168,35 @@ def build_hierarchical_chunks(pdf_path: str) -> Dict:
         "parent_lookup": parent_lookup
     }    
 
+def simple_keyword_search(
+    query: str,
+    child_chunks: List[ChildChunk],
+    top_k: int = 3
+):
+    """
+    Simple keyword-based retrieval over child chunks.
+
+    This is only for demonstrating hierarchical retrieval.
+    In a real RAG system, this would be replaced by:
+    - embeddings
+    - vector database
+    - cosine similarity
+    - hybrid search
+    """
+    query_terms = set(query.lower().split())
+    scored_chunks = []
+
+    for child in child_chunks:
+        child_terms = set(child.text.lower().split())
+        score = len(query_terms.intersection(child_terms))
+
+        if score > 0:
+            scored_chunks.append((score, child))
+
+    scored_chunks.sort(key=lambda item: item[0], reverse=True)
+
+    return scored_chunks[:top_k]    
+
 if __name__ == "__main__":
     pdf_path = "data/sample.pdf"
 
@@ -177,14 +206,20 @@ if __name__ == "__main__":
     print("Total Parent Chunks:", len(hierarchy["parents"]))
     print("Total Child Chunks:", len(hierarchy["children"]))
 
-    print("\nSample Parent:")
-    sample_parent = hierarchy["parents"][0]
-    print("Parent ID:", sample_parent.parent_id)
-    print("Title:", sample_parent.title)
-    print("Text Preview:", sample_parent.text[:300])
+    query = "Multi Head Attention"
 
-    print("\nSample Child:")
-    sample_child = hierarchy["children"][0]
-    print("Child ID:", sample_child.child_id)
-    print("Parent ID:", sample_child.parent_id)
-    print("Text Preview:", sample_child.text[:300])
+    results = simple_keyword_search(
+        query=query,
+        child_chunks=hierarchy["children"],
+        top_k=3
+    )
+
+    print("\nQuery:", query)
+    print("Retrieved Child Chunks:")
+
+    for score, child in results:
+        print("=" * 80)
+        print("Score:", score)
+        print("Child ID:", child.child_id)
+        print("Parent ID:", child.parent_id)
+        print("Text Preview:", child.text[:500])

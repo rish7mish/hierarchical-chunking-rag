@@ -83,6 +83,55 @@ def split_into_parent_chunks(text: str, document_id: str) -> List[ParentChunk]:
 
     return parent_chunks    
 
+def split_parent_into_child_chunks(
+    parent: ParentChunk,
+    max_words: int = 120,
+    overlap_words: int = 20
+) -> List[ChildChunk]:
+    """
+    Split one parent chunk into smaller child chunks.
+
+    Child chunks are used for precise retrieval.
+    Parent chunks are used later to provide broader context.
+    """
+    words = parent.text.split()
+    child_chunks = []
+
+    if not words:
+        return child_chunks
+
+    start = 0
+    child_index = 0
+
+    while start < len(words):
+        end = start + max_words
+        child_words = words[start:end]
+        child_text = " ".join(child_words)
+
+        child_id = f"child-{uuid.uuid4().hex[:8]}"
+
+        child_chunks.append(
+            ChildChunk(
+                child_id=child_id,
+                parent_id=parent.parent_id,
+                document_id=parent.document_id,
+                text=child_text,
+                metadata={
+                    "level": "child",
+                    "child_index": child_index,
+                    "parent_id": parent.parent_id,
+                    "parent_title": parent.title,
+                    "start_word": start,
+                    "end_word": min(end, len(words))
+                }
+            )
+        )
+
+        child_index += 1
+        start += max_words - overlap_words
+
+    return child_chunks    
+
 if __name__ == "__main__":
     pdf_path = "data/sample.pdf"
     document_id = f"doc-{uuid.uuid4().hex[:8]}"
@@ -92,12 +141,17 @@ if __name__ == "__main__":
 
     parent_chunks = split_into_parent_chunks(cleaned_text, document_id)
 
+    child_chunks = []
+    for parent in parent_chunks:
+        child_chunks.extend(split_parent_into_child_chunks(parent))
+
     print("Document ID:", document_id)
     print("Total Parent Chunks:", len(parent_chunks))
+    print("Total Child Chunks:", len(child_chunks))
 
-    for parent in parent_chunks[:2]:
+    for child in child_chunks[:2]:
         print("=" * 80)
-        print("Parent ID:", parent.parent_id)
-        print("Title:", parent.title)
-        print("Metadata:", parent.metadata)
-        print("Text Preview:", parent.text[:500])
+        print("Child ID:", child.child_id)
+        print("Parent ID:", child.parent_id)
+        print("Metadata:", child.metadata)
+        print("Text Preview:", child.text[:500])

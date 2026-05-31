@@ -38,6 +38,17 @@ def extract_text_from_pdf(pdf_path: str) -> str:
 
     return "\n".join(pages)    
 
+def clean_text(text: str) -> str:
+    """
+    Clean extracted PDF text.
+
+    This removes excessive blank lines and extra spaces
+    while keeping basic paragraph/page structure.
+    """
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    text = re.sub(r"[ \t]+", " ", text)
+    return text.strip()    
+
 if __name__ == "__main__":
     pdf_path = "data/sample.pdf"
     text = extract_text_from_pdf(pdf_path)

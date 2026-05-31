@@ -237,6 +237,7 @@ if __name__ == "__main__":
     print("Total Parent Chunks:", len(hierarchy["parents"]))
     print("Total Child Chunks:", len(hierarchy["children"]))
 
+    # Change this query based on your PDF content
     query = "attention mechanism architecture"
 
     results = retrieve_with_parent_context(

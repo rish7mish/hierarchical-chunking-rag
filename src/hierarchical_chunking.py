@@ -132,8 +132,19 @@ def split_parent_into_child_chunks(
 
     return child_chunks    
 
-if __name__ == "__main__":
-    pdf_path = "data/sample.pdf"
+def build_hierarchical_chunks(pdf_path: str) -> Dict:
+    """
+    Build the full hierarchical chunk structure from a PDF.
+
+    Flow:
+    PDF -> raw text -> cleaned text -> parent chunks -> child chunks
+
+    Returns:
+    - document_id
+    - parent chunks
+    - child chunks
+    - parent lookup dictionary
+    """
     document_id = f"doc-{uuid.uuid4().hex[:8]}"
 
     raw_text = extract_text_from_pdf(pdf_path)
@@ -145,13 +156,35 @@ if __name__ == "__main__":
     for parent in parent_chunks:
         child_chunks.extend(split_parent_into_child_chunks(parent))
 
-    print("Document ID:", document_id)
-    print("Total Parent Chunks:", len(parent_chunks))
-    print("Total Child Chunks:", len(child_chunks))
+    parent_lookup = {
+        parent.parent_id: parent
+        for parent in parent_chunks
+    }
 
-    for child in child_chunks[:2]:
-        print("=" * 80)
-        print("Child ID:", child.child_id)
-        print("Parent ID:", child.parent_id)
-        print("Metadata:", child.metadata)
-        print("Text Preview:", child.text[:500])
+    return {
+        "document_id": document_id,
+        "parents": parent_chunks,
+        "children": child_chunks,
+        "parent_lookup": parent_lookup
+    }    
+
+if __name__ == "__main__":
+    pdf_path = "data/sample.pdf"
+
+    hierarchy = build_hierarchical_chunks(pdf_path)
+
+    print("Document ID:", hierarchy["document_id"])
+    print("Total Parent Chunks:", len(hierarchy["parents"]))
+    print("Total Child Chunks:", len(hierarchy["children"]))
+
+    print("\nSample Parent:")
+    sample_parent = hierarchy["parents"][0]
+    print("Parent ID:", sample_parent.parent_id)
+    print("Title:", sample_parent.title)
+    print("Text Preview:", sample_parent.text[:300])
+
+    print("\nSample Child:")
+    sample_child = hierarchy["children"][0]
+    print("Child ID:", sample_child.child_id)
+    print("Parent ID:", sample_child.parent_id)
+    print("Text Preview:", sample_child.text[:300])

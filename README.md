@@ -1,43 +1,70 @@
-# Hierarchical Chunking for RAG
+# Hierarchical Chunking for RAG (Airline Cargo Support)
 
-This project demonstrates hierarchical chunking for a Retrieval-Augmented Generation (RAG) pipeline.
+This project demonstrates a Retrieval-Augmented Generation (RAG) pipeline utilizing hierarchical chunking on a Markdown Standard Operating Procedure (SOP) document.
 
-The goal is to split a PDF into:
+The pipeline splits structured Markdown text by section headers (e.g., `#`, `##`, `###`) to preserve context. During retrieval, we search for precise chunks matching user queries and synthesize context-aware answers using an LLM.
 
-- Parent chunks: larger context blocks
-- Child chunks: smaller retrieval-focused chunks
+## Architecture & Flow
 
-During retrieval, the system first retrieves the most relevant child chunk and then fetches its parent chunk to provide broader context.
+1. **Document Loading**: Parse structured Markdown containing Airline Cargo SOPs ([data/airline_support_sop.md](file:///C:/Projects/hierarchical-chunking-rag/data/airline_support_sop.md)).
+2. **Hierarchical Chunking**: Use LangChain's `MarkdownHeaderTextSplitter` to partition content based on heading levels, preserving the document structure.
+3. **Local Vector Indexing**:
+   - Generate embeddings for each chunk using `sentence-transformers/all-MiniLM-L6-v2`.
+   - Store the vectors locally in a [FAISS](file:///C:/Projects/hierarchical-chunking-rag/faiss_index) index.
+4. **Semantic Retrieval**:
+   - Compute similarity search score between query and document chunks.
+   - Filter chunks using a distance threshold to identify out-of-domain queries.
+5. **Context-Aware Synthesis**:
+   - Format retrieved sections as structured context.
+   - Run the query through the OpenAI GPT-4 mini model to produce source-cited, accurate answers.
 
-## Why Hierarchical Chunking?
+---
 
-Flat chunking treats every chunk independently. This can cause loss of context when a small chunk is retrieved.
-
-Hierarchical chunking solves this by maintaining a relationship between child chunks and parent chunks.
-
-Retrieval flow:
+## Directory Structure
 
 ```text
-User query
- ↓
-Search child chunks
- ↓
-Retrieve precise child chunk
- ↓
-Use child.parent_id
- ↓
-Fetch parent context
- ↓
-Return child + parent
-
 hierarchical-chunking-rag/
 │
-├── src/
-│   └── hierarchical_chunking.py
-│
 ├── data/
-│   └── sample.pdf
+│   ├── airline_support_sop.md   # Airline Cargo SOP document
+│   └── sample.pdf                # Sample PDF reference document
 │
+├── faiss_index/                  # Local FAISS vector index files
+│   ├── index.faiss
+│   └── index.pkl
+│
+├── src/
+│   └── hierarchical_chunking.py  # Page-based PDF chunking reference
+│
+├── .env                          # Local environment secrets (ignored)
+├── .gitignore
+├── rag_test.py                   # Main RAG script (LangChain, FAISS, OpenAI)
 ├── requirements.txt
-├── README.md
-└── .gitignore
+└── README.md
+```
+
+---
+
+## Getting Started
+
+### 1. Installation
+
+Install all required packages:
+```bash
+pip install -r requirements.txt
+pip install langchain-community sentence-transformers faiss-cpu openai python-dotenv
+```
+
+### 2. Configuration
+
+Create a `.env` file in the project root:
+```env
+OPENAI_API_KEY=your_openai_api_key
+```
+
+### 3. Execution
+
+Run the retrieval tests:
+```bash
+python rag_test.py
+```
